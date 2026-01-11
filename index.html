@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Core System | Admin Console</title>
+    <meta name="robots" content="noindex, nofollow">
+    
+    <!-- Icons & Fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --accent: #3b82f6; /* Blue */
+            --danger: #ef4444; /* Red */
+            --success: #10b981; /* Green */
+            --border: #334155;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        body { background: var(--bg-dark); color: var(--text-main); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; display: flex; }
+
+        /* --- LOGIN OVERLAY --- */
+        #auth-layer { position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: var(--bg-card); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 350px; text-align: center; }
+        .login-input { width: 100%; padding: 12px; margin: 20px 0; background: var(--bg-dark); border: 1px solid var(--border); color: white; border-radius: 6px; }
+        
+        /* --- SIDEBAR --- */
+        aside { width: 250px; background: #020617; border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; }
+        .brand { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent); margin-bottom: 40px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
+        .nav-item { padding: 12px; border-radius: 6px; color: var(--text-sub); cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .nav-item:hover, .nav-item.active { background: var(--accent); color: white; }
+        .nav-item.danger { color: var(--danger); }
+        .nav-item.danger:hover { background: rgba(239, 68, 68, 0.2); }
+
+        /* --- MAIN CONTENT --- */
+        main { flex: 1; padding: 30px; overflow-y: auto; position: relative; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .btn { padding: 10px 20px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-success { background: var(--success); color: white; }
+
+        /* GRID SYSTEM */
+        .user-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        
+        /* USER CARD */
+        .user-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; position: relative; transition: 0.3s; }
+        .user-card:hover { border-color: var(--text-sub); }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
+        .status-badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .status-active { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .status-frozen { background: rgba(239, 68, 68, 0.2); color: var(--danger); animation: pulse 2s infinite; }
+
+        .u-name { font-weight: 700; font-size: 1.1rem; }
+        .u-id { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-sub); margin-top: 4px; }
+        
+        .u-balance { font-size: 1.5rem; font-weight: 700; margin: 15px 0; display: flex; align-items: center; justify-content: space-between; }
+        .edit-bal { font-size: 0.9rem; color: var(--accent); cursor: pointer; opacity: 0.7; }
+        .edit-bal:hover { opacity: 1; }
+
+        .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .act-btn { padding: 8px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+        
+        .btn-freeze { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-freeze:hover { background: var(--danger); color: white; }
+        
+        .btn-unfreeze { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .btn-unfreeze:hover { background: var(--success); color: white; }
+
+        .btn-view { background: var(--bg-dark); color: var(--text-main); }
+
+        /* TERMINAL LOG */
+        .terminal { position: fixed; bottom: 0; left: 250px; right: 0; height: 150px; background: #000; border-top: 1px solid var(--border); padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; overflow-y: auto; color: #33ff00; }
+        .log-entry { margin-bottom: 5px; opacity: 0.8; }
+
+        /* MODAL */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 5000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-content { background: var(--bg-card); width: 400px; padding: 30px; border-radius: 12px; border: 1px solid var(--border); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: var(--text-sub); font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 10px; background: var(--bg-dark); border: 1px solid var(--border); color: white; border-radius: 4px; }
+
+        .hidden { display: none !important; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-layer">
+        <div class="login-box">
+            <h2 style="margin-bottom: 10px;">CORE SYSTEM ACCESS</h2>
+            <p style="color: var(--text-sub); font-size: 0.9rem;">Authorized Personnel Only</p>
+            <input type="password" id="admin-pass" class="login-input" placeholder="Enter Access Key">
+            <button onclick="checkAuth()" class="btn btn-primary" style="width: 100%; justify-content: center;">Authenticate</button>
+        </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <aside>
+        <div class="brand"><i class="fas fa-server"></i> CORE.SYS</div>
+        <div class="nav-item active"><i class="fas fa-users"></i> Accounts</div>
+        <div class="nav-item"><i class="fas fa-exchange-alt"></i> Wire Traffic</div>
+        <div style="flex: 1;"></div>
+        <div class="nav-item danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Terminate Session</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main>
+        <div class="header">
+            <div>
+                <h1>Account Management</h1>
+                <p style="color: var(--text-sub);">Real-time database connection active</p>
+            </div>
+            <button class="btn btn-success" onclick="openCreateModal()">
+                <i class="fas fa-plus"></i> New Account
+            </button>
+        </div>
+
+        <!-- USER GRID -->
+        <div id="user-grid" class="user-grid">
+            <!-- Cards will inject here -->
+            <div style="color: var(--text-sub);">Loading Database...</div>
+        </div>
+    </main>
+
+    <!-- TERMINAL -->
+    <div class="terminal" id="terminal">
+        <div class="log-entry">[SYSTEM] Initializing secure connection...</div>
+        <div class="log-entry">[SYSTEM] Waiting for authorization...</div>
+    </div>
+
+    <!-- CREATE USER MODAL -->
+    <div id="create-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 style="margin-bottom: 20px;">Generate New Entity</h3>
+            <form id="create-form">
+                <div class="form-group">
+                    <label>Client Name</label>
+                    <input type="text" id="new-name" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Username (Login ID)</label>
+                    <input type="text" id="new-user" required>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="text" id="new-pass" value="password123">
+                </div>
+                <div class="form-group">
+                    <label>Initial Balance</label>
+                    <input type="number" id="new-bal" value="10000">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-view" onclick="closeModal()" style="flex:1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- PASTE YOUR FIREBASE CONFIG HERE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqVg8KfGZ7ipjBhfv9EF0BxpakdDDEbOg",
+            authDomain: "americana--app.firebaseapp.com",
+            projectId: "americana--app",
+            storageBucket: "americana--app.firebasestorage.app",
+            messagingSenderId: "952579486254",
+            appId: "1:952579486254:web:531a1cd2086e7bed0665bf"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- AUTH SYSTEM ---
+        window.checkAuth = () => {
+            const input = document.getElementById('admin-pass').value;
+            // Simple hardcoded admin password (change this if you want)
+            if(input === "admin123") {
+                document.getElementById('auth-layer').classList.add('hidden');
+                log("Admin authenticated successfully.");
+                initListener();
+            } else {
+                alert("ACCESS DENIED");
+                log("[ERROR] Failed auth attempt.");
+            }
+        };
+
+        window.logout = () => location.reload();
+
+        // --- TERMINAL LOGGER ---
+        function log(msg) {
+            const term = document.getElementById('terminal');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.innerText = `[${time}] ${msg}`;
+            term.prepend(entry);
+        }
+
+        // --- REAL-TIME LISTENER ---
+        function initListener() {
+            log("Establishing socket connection to Firestore...");
+            
+            // Listen to 'users' collection updates in real-time
+            onSnapshot(collection(db, "users"), (snapshot) => {
+                const grid = document.getElementById('user-grid');
+                grid.innerHTML = ""; // Clear current
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    renderCard(doc.id, data, grid);
+                });
+                log(`Sync complete. ${snapshot.size} records loaded.`);
+            });
+        }
+
+        // --- RENDER USER CARD ---
+        function renderCard(id, data, container) {
+            const isFrozen = data.isFrozen === true;
+            
+            const card = document.createElement('div');
+            card.className = 'user-card';
+            card.innerHTML = `
+                <div class="card-header">
+                    <div>
+                        <div class="u-name">${data.account_name}</div>
+                        <div class="u-id">UID: ${data.username}</div>
+                        <div class="u-id">PIN: ${data.pin}</div>
+                    </div>
+                    <span class="status-badge ${isFrozen ? 'status-frozen' : 'status-active'}">
+                        ${isFrozen ? 'FROZEN' : 'ACTIVE'}
+                    </span>
+                </div>
+                
+                <div class="u-balance">
+                    $${new Intl.NumberFormat().format(data.balance)}
+                    <i class="fas fa-pen edit-bal" onclick="editBalance('${id}', ${data.balance})"></i>
+                </div>
+                
+                <div style="font-size:0.8rem; color:var(--text-sub); margin-bottom:10px;">
+                    Acct: ${data.account_number}
+                </div>
+
+                <div class="card-actions">
+                    <button class="act-btn ${isFrozen ? 'btn-unfreeze' : 'btn-freeze'}" 
+                        onclick="toggleFreeze('${id}', ${isFrozen})">
+                        ${isFrozen ? 'UNFREEZE' : 'FREEZE ACCT'}
+                    </button>
+                    <button class="act-btn btn-view" onclick="deleteUser('${id}')">
+                        DELETE
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        // --- ACTIONS ---
+        
+        // 1. FREEZE / UNFREEZE
+        window.toggleFreeze = async (id, currentStatus) => {
+            try {
+                const newStatus = !currentStatus;
+                await updateDoc(doc(db, "users", id), {
+                    isFrozen: newStatus
+                });
+                log(`Updated User ${id} -> Frozen: ${newStatus}`);
+            } catch (err) {
+                console.error(err);
+                alert("Error updating status");
+            }
+        };
+
+        // 2. EDIT BALANCE
+        window.editBalance = async (id, currentBal) => {
+            const newBal = prompt("Enter new balance:", currentBal);
+            if(newBal !== null) {
+                try {
+                    await updateDoc(doc(db, "users", id), {
+                        balance: parseFloat(newBal)
+                    });
+                    log(`Adjusted balance for ${id} to $${newBal}`);
+                } catch(err) {
+                    alert("Update failed");
+                }
+            }
+        };
+
+        // 3. DELETE USER
+        window.deleteUser = async (id) => {
+            if(confirm("ARE YOU SURE? This cannot be undone.")) {
+                await deleteDoc(doc(db, "users", id));
+                log(`Record ${id} deleted permanently.`);
+            }
+        };
+
+        // 4. CREATE USER
+        window.openCreateModal = () => document.getElementById('create-modal').classList.remove('hidden');
+        window.closeModal = () => document.getElementById('create-modal').classList.add('hidden');
+
+        document.getElementById('create-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('new-name').value;
+            const user = document.getElementById('new-user').value;
+            const pass = document.getElementById('new-pass').value;
+            const bal = parseFloat(document.getElementById('new-bal').value);
+
+            // Generate Random Bank Details
+            const acctNum = "44" + Math.floor(Math.random() * 100000000);
+            const routeNum = "06" + Math.floor(Math.random() * 10000000);
+            const pin = Math.floor(1000 + Math.random() * 9000).toString();
+
+            try {
+                await addDoc(collection(db, "users"), {
+                    account_name: name,
+                    username: user,
+                    password: pass,
+                    balance: bal,
+                    account_number: acctNum,
+                    routing_number: routeNum,
+                    pin: pin,
+                    isFrozen: false,
+                    profile_pic: ""
+                });
+                
+                log(`New Entity Created: ${name} (${acctNum})`);
+                closeModal();
+                document.getElementById('create-form').reset();
+            } catch(err) {
+                console.error(err);
+                alert("Creation failed");
+            }
+        });
+
+    </script>
+</body>
+</html>
